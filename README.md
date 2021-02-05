@@ -1,5 +1,5 @@
 ### Hi there 👋
-[![Header](https://raw.githubusercontent.com/Anjankumar-Krishnan/<OWNER>/<OWNER>/Zoom-BG-MSBA "Header")]
+[![Header](https://raw.githubusercontent.com/Anjankumar-Krishnan/<OWNER>/<OWNER>/Zoom-BG-MSBA.jpg "Header")]
 <!--
 **Anjankumar-Krishnan/Anjankumar-Krishnan** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
