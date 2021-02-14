@@ -1,4 +1,4 @@
-### Anjan Kumar Krishnan - MSBA Dec 2021 👋
+### Anjan Kumar Krishnan - MSBA Dec 2021
 ![alt text](https://github.com/Anjankumar-Krishnan/Anjankumar-Krishnan/blob/main/Zoom-BG-MSBA.jpg?raw=true)
 
 <!--
