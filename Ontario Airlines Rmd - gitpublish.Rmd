@@ -1,0 +1,213 @@
+---
+title: "Ontario Gateway Insurance Analysis"
+author: "Anjan Kumar Krishnan"
+date: "10/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+Problem Statement: Ontario Gateway's (OGC) COO Mary Litton wishes to select from 4 policies to insure the full fleet of airplanes for five years starting March 1, 1997.
+The primary aim is to select a policy that minimizes the risk of the company, i.e. OGC, incurring an annual liability of >$37M. The liability discussed here includes crash-related costs post insurance claim settlements and annual insurance premium payments.
+The secondary aim is to select the policy that has the lowest annual premium.
+
+Policy Options: Ontario Gateway Corporation (OGC) is currently considering four different insurance plans. The Reinsurance Corporation of Northern California (RCNC) is offering two plans. 
+RCNC Plan 1 costs 0.45% of the value of all OGC aircraft and 10% of all aircraft losses per year. Plan 2 costs 0.10% of the value of all OGC aircraft plus 1% of the OGC aircraft value or 90% of all aircraft losses, whichever is lower. 
+The Canadian Trust Company (CTC) is offering OGC a plan costing 13 million dollars per year, which pays 90% of aircraft losses to a max of 80 million dollars. The Hawthorne Insurance Company (HIC) is offering a plan that costs 0.165% of all OGC aircraft value and covers losses over $24 million. 
+Additionally, rebates of 20% of RCNC Plan 1 profits and 3.5% of HIC profits are offered at the end of five-year agreements.
+
+Executive Summary: Ontario Gateway Corporation (OGC) should choose HIC as its insurance provider for the full fleet. Hawthorne Insurance Company eliminates all risk of liability costs over 37 million dollars and is the lowest-cost plan that meets this criteria at $12.3 million annual premium payment. 
+This recommendation holds for both the industry average probability of a plane crash and OGC’s lower probability of a plane crash.
+
+Model Discussion:
+
+A simulation of the number of crashes in a given year was constructed using the total number of expected flights in a given year by all planes in the fleet and an industry accident rate (crash likelihood).
+Annual liability costs, under each of the 4 plans, were estimated based on the number of crashes that could occur as indicated by the probability model.
+Insurance company Hawthorne Insurance Corporation (HIC) affords the minimal risk (i.e. 0% chance) of annual liability exceeding $37M in a given year. This is largely due to the policy's terms to bear fleet crash loss greater than $24M.
+Annual premium payments under HIC's terms were the second most competitive, and the second RCNC policy (RCNC2) came at the lowest premium payment. The recommendation is, however, to not go with RCNC2, as the likelihood of the company's annual liability >$37M is 2.5%, which would not meet the primary objective of the task.
+Recommendation is to choose HIC, and setting aside 12.3M dollars towards annual premium payment.
+
+Additional discussion:
+
+All plan costs (liability to OGC) annually:
+HIC: 12.3 million dollars annually
+CTC: 13.3 million dollars annually
+RCNC1: 27.06 million dollars annually
+RCNC2: 8.2 million dollars annually, but 2.5% chance of liability exceeding 37 million dollars
+
+All plan costs (liability to OGC) over 5 years:
+HIC: 50.4 million dollars over 5 years
+CTC: 65.3 million dollars over 5 years
+RCNC1: 110 million dollars over 5 years
+RCNC2: 32 million dollars over 5 years, 0.23% chance of liability exceeding $185 million. 
+
+RCNC2 annual variable payment clause, however, makes the company bear upto 59.6M dollars in a given year even if a single crash occurs. Thus in a year that sees a crash, this policy costs the company well over the liability of 37M dollars , and would immensely impact the company’s financial position. Crash losses stemming from more than 1 crash a year are capped at 59.6M dollars, and thus over a 5-year period, the probability of cumulative liability >$185M is thus low.
+
+Two plans, namely RCNC1 and HIC also feature rebate clauses in their plans. These rebates are rewarding especially when there have been no claims on insurance. Their benefit, however, is only paid at the end of the 5-year plan. The annual liability calculations thus do not factor this rebate, but a separate analysis was carried out to estimate liability costs across a 5 year period, the latter which could factor the rebates. It was found that the rebate does not change the original recommendation of HIC.
+
+Given Ontario Gateway's safety track record, a less conservative crash likelihood was used to assess the liability costs across the 4 plans (sensitivity analysis).  
+While the probability of the company's annual liability exceeding 37M dollars on the RCNC2 was reduced from 2.5% to 1.97%, a significant risk is still posed from opting for RCNC2 policy. The recommendation to choose HIC remains even in view of the revised probability calculations, with a 0% likelihood of liability costs exceeding $37 annually.
+HIC still remains the second most competitive policy (after RCNC2) on the basis of annual premium payments.
+
+Assumptions:
+1.) Model simplified the average cost of a flight across the different plane models by using a weighted average of the number of planes of a given type existing in the fleet.
+2.) A single policy recommendation was made for the fleet in entirety.
+3.) Flight loss incidentals were averaged at $2.5M annually and is included as part of the claim amount (i.e. losses) submitted to insurance
+
+## Industry Standard Probability of Crashes
+
+```{r}
+
+options(scipen = 999) 
+
+# Expected number of flights in a year and in a 5-year period
+tot_flig_yr <- round(sum(47*6*342,15*2.25*342, 24*2*342),digits=0)
+tot_flig_5yr <- round(5*sum(47*6*342,15*2.25*342, 24*2*342),digits=0)
+
+# Industry estimated likelihood of a crash event
+p <- 1/5000000  
+# p <- 1/6250000 # for sensitivity analysis using a 25% lower risk of crash
+
+# Simulation model to estimate number of crash events given the total number of flights and probability of crash:
+crash_dist_yr <- rbinom(100000,tot_flig_yr,p)
+crash_dist_5yr <- rbinom(100000,tot_flig_5yr,p)
+
+# Costs of fleet and Annual Average Incidentals
+repl_cost_avg <- (47*56400000 + 15*78900000 + 24*88500000)/(86)
+fleet_value <- 47*56400000 + 15*78900000 + 24*88500000
+avg_incd <- 2500000
+
+# Number of crashes in 1-year period, just to initialize
+n <- 1
+
+# Number of crashes in 5-year period, just to initialize
+n_5 <- 1
+
+# Annual cost of premium/fixed payment
+
+rcnc1 <- (0.45/100)*fleet_value
+rcnc2 <- (0.1/100)*fleet_value 
+ctc <- 13000000
+hic <- (0.165/100)*fleet_value
+  
+# Annual crash loss post insurance payout (calculated upon # of crashes)
+
+closs_rcnc1 <- function(n) {return(0.1* (repl_cost_avg*n + avg_incd))}
+closs_rcnc2 <- function (n) {return(min(0.9*(repl_cost_avg*n + avg_incd), 0.01*fleet_value))}
+closs_ctc <- function (n) {return(max(0, 0.1*(n*repl_cost_avg + avg_incd), (n*repl_cost_avg + avg_incd) - 80000000))}
+closs_hic <- function(n) {return(min((n*repl_cost_avg + avg_incd), 24000000))} 
+
+# For CTC's settlement on losses above $80M, no deductible is charged, i.e., 100% of $80M is paid out
+
+# Rebates at end of 5-year period on 2 plans
+rebate_5yr_rcnc1 <- function(n_5) {return(max(0, 0.2*(5*rcnc1 - repl_cost_avg*n_5 - 5*avg_incd)))}
+rebate_5yr_hic <- function (n_5) {return(max(0, 0.035*(5*hic - repl_cost_avg*n_5 - 5*avg_incd)))}
+
+
+# Net annual liabilities scenarios
+
+rcnc1_dist <- crash_dist_yr
+for (i in 1:length(crash_dist_yr))
+{
+    rcnc1_dist[i] <- rcnc1 + closs_rcnc1(crash_dist_yr[i])
+}
+
+rcnc2_dist <- crash_dist_yr
+for (i in 1:length(crash_dist_yr))
+{
+  rcnc2_dist[i] <- rcnc2 + closs_rcnc2(crash_dist_yr[i])
+}
+
+ctc_dist <- crash_dist_yr
+for (i in 1:length(crash_dist_yr))
+{
+  ctc_dist[i] <- ctc + closs_ctc(crash_dist_yr[i])
+}
+
+hic_dist <- crash_dist_yr
+for (i in 1:length(crash_dist_yr))
+{
+  hic_dist[i] <- hic + closs_hic(crash_dist_yr[i])
+}
+
+max_rcnc1_dist <- max(rcnc1_dist)
+min_rcnc1_dist <- min(rcnc1_dist)
+p_rcnc1_dist <- mean(rcnc1_dist > 37000000)
+
+max_rcnc2_dist <- max(rcnc2_dist)
+min_rcnc2_dist <- min(rcnc2_dist)
+p_rcnc2_dist <- mean(rcnc2_dist > 37000000)
+
+max_ctc_dist <- max(ctc_dist)
+min_ctc_dist <- min(ctc_dist)
+p_ctc_dist <- mean(ctc_dist > 37000000)
+
+max_hic_dist <- max(hic_dist)
+min_hic_dist <- min(hic_dist)
+p_hic_dist <- mean(hic_dist > 37000000)
+
+print("Annual cost of premiums and probability of annual liability > $37M : ")
+
+paste0("rcnc1, $ ",min_rcnc1_dist, ", prob.:", round(p_rcnc1_dist*100, 3), "%")
+paste0("rcnc2, $ ",min_rcnc2_dist, ", prob.:", round(p_rcnc2_dist*100, 3), "%")
+paste0("ctc, $ ",min_ctc_dist, ", prob.:", round(p_ctc_dist*100, 3), "%")
+paste0("hic, $ ",min_hic_dist, ", prob.:", round(p_hic_dist*100, 3), "%")
+
+hist(rcnc1_dist/10^6, xlab = "Annual Liability costs in million $", main = paste("RCNC1 Annual Liability costs (million $) in 100000 simulated crashes"), ylim = c(0,100000))
+hist(rcnc2_dist/10^6, xlab = "Annual Liability costs in million $", main = paste("RCNC2 Annual Liability costs (million $) in 100000 simulated crashes"), ylim = c(0,100000))
+hist(ctc_dist/10^6, xlab = "Annual Liability costs in million $", main = paste("CTC Annual Liability costs (million $) in 100000 simulated crashes"), ylim = c(0,100000))
+hist(hic_dist/10^6, xlab = "Annual Liability costs in million $", main = paste("HIC Annual Liability costs (million $) in 100000 simulated crashes"), ylim = c(0,100000))
+
+
+# 5-year cumulative cost scenarios
+
+rcnc1_dist_5yr <- crash_dist_5yr
+for (i in 1:length(crash_dist_5yr))
+{
+  rcnc1_dist_5yr[i] <- 5*rcnc1 + sum(vapply(0:crash_dist_5yr[i] , closs_rcnc1, numeric(1))) - rebate_5yr_rcnc1(crash_dist_5yr[i]) 
+}
+
+rcnc2_dist_5yr <- crash_dist_5yr
+for (i in 1:length(crash_dist_5yr))
+{
+  rcnc2_dist_5yr[i] <- 5*rcnc2 + sum(vapply(0:crash_dist_5yr[i] , closs_rcnc2, numeric(1)))
+}
+
+ctc_dist_5yr <- crash_dist_5yr
+for (i in 1:length(crash_dist_5yr))
+{
+  ctc_dist_5yr[i] <- 5*ctc + sum(vapply(0:crash_dist_5yr[i] , closs_ctc, numeric(1)))
+}
+
+hic_dist_5yr <- crash_dist_5yr
+for (i in 1:length(crash_dist_5yr))
+{
+  hic_dist_5yr[i] <- 5*hic + sum(vapply(0:crash_dist_5yr[i] , closs_hic, numeric(1))) - rebate_5yr_hic(crash_dist_5yr[i]) 
+}
+
+max_rcnc1_dist_5yr <- max(rcnc1_dist_5yr)
+min_rcnc1_dist_5yr <- min(rcnc1_dist_5yr)
+p_rcnc1_dist_5yr <- mean(rcnc1_dist_5yr > 185000000)
+
+max_rcnc2_dist_5yr <- max(rcnc2_dist_5yr)
+min_rcnc2_dist_5yr <- min(rcnc2_dist_5yr)
+p_rcnc2_dist_5yr <- mean(rcnc2_dist_5yr > 185000000)
+
+max_ctc_dist_5yr <- max(ctc_dist_5yr)
+min_ctc_dist_5yr <- min(ctc_dist_5yr)
+p_ctc_dist_5yr <- mean(ctc_dist_5yr > 185000000)
+
+max_hic_dist_5yr <- max(hic_dist_5yr)
+min_hic_dist_5yr <- min(hic_dist_5yr)
+p_hic_dist_5yr <- mean(hic_dist_5yr > 185000000)
+
+print("5-yr cost of premiums and probability of liability over 5 years > $185M : ")
+
+paste0("rcnc1, $ ",min_rcnc1_dist_5yr, ", prob.:", round(p_rcnc1_dist_5yr*100, 3), "%")
+paste0("rcnc2, $ ",min_rcnc2_dist_5yr, ", prob.:", round(p_rcnc2_dist_5yr*100, 3), "%")
+paste0("ctc, $ ",min_ctc_dist_5yr, ", prob.:", round(p_ctc_dist_5yr*100, 3), "%")
+paste0("hic, $ ",min_hic_dist_5yr, ", prob.:", round(p_hic_dist_5yr*100, 3), "%")
